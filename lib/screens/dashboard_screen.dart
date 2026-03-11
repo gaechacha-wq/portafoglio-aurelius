@@ -12,6 +12,8 @@ import 'master_dashboard_screen.dart';
 import 'help_screen.dart';
 import 'info_screen.dart';
 import '../services/subscription_service.dart';
+import 'subscription_screen.dart';
+import 'package:flutter/cupertino.dart';
 import 'dart:ui';
 
 final onboardingShownProvider = StateProvider<bool>((ref) => false);

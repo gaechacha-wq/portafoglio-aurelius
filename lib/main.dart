@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/biometric_gate.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,16 +27,7 @@ class PortfolioAureliusApp extends StatelessWidget {
       title: 'Portfolio Aurelius',
       debugShowCheckedModeBanner: false,
       theme: AureliusTheme.darkTheme,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('it', ''),
-        Locale('en', ''),
-      ],
+
       home: const BiometricGate(),
     );
   }

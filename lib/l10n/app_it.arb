@@ -1,0 +1,14 @@
+{
+  "@@locale": "it",
+  "appTitle": "Portafoglio Aurelius",
+  "dashboardTitle": "Portfolio Aurelius",
+  "netWorthLabel": "NET WORTH",
+  "infoScreenTitle": "Informazioni App",
+  "versionLabel": "Versione",
+  "changelogLabel": "Changelog",
+  "masterDashboardTitle": "Gestione Globale Patrimonio",
+  "cashflowLabel": "Flussi di Cassa Annuali",
+  "personalIncome": "Reddito Personale Netto",
+  "spouseIncome": "Reddito Coniuge Netto",
+  "familyIncome": "Entrate Familiari Totali"
+}

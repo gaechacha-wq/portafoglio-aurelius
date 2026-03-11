@@ -1,0 +1,14 @@
+{
+  "@@locale": "en",
+  "appTitle": "Aurelius Portfolio",
+  "dashboardTitle": "Aurelius Portfolio",
+  "netWorthLabel": "NET WORTH",
+  "infoScreenTitle": "App Information",
+  "versionLabel": "Version",
+  "changelogLabel": "Changelog",
+  "masterDashboardTitle": "Global Wealth Management",
+  "cashflowLabel": "Annual Cashflow",
+  "personalIncome": "Net Personal Income",
+  "spouseIncome": "Net Spouse Income",
+  "familyIncome": "Total Family Income"
+}

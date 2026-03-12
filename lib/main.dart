@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/biometric_gate.dart';
+import 'core/router/app_router.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -19,12 +18,15 @@ void main() async {
   );
 }
 
-class PortfolioAureliusApp extends StatelessWidget {
+class PortfolioAureliusApp extends ConsumerWidget {
   const PortfolioAureliusApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Osserva il routerProvider creato
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
       title: 'Portfolio Aurelius',
       debugShowCheckedModeBanner: false,
       theme: AureliusTheme.darkTheme,
@@ -38,7 +40,7 @@ class PortfolioAureliusApp extends StatelessWidget {
         Locale('it', ''),
         Locale('en', ''),
       ],
-      home: const BiometricGate(),
+      routerConfig: router,
     );
   }
 }

@@ -20,8 +20,8 @@ Il cuore dell'applicazione. Un `Asset` rappresenta tramite un approccio polimorf
 
 ### 2. `SubscriptionTier` (Modello Abbonamenti)
 Sistema di ruoli SaaS per gating (blocchi logici).
-- Enum: `[free, base, pro, wealth]`
-- Regola: Il piano `wealth` sblocca la `Master Dashboard`, il piano `pro` lo `Scanner`.
+- Enum: `[free, base, pro, wealth_elite]`
+- Regola: Il piano `wealth_elite` sblocca la `Master Dashboard`, l'Agente IA integrato e i report avanzati. Il piano `pro` sblocca lo `Scanner` screenshot e gestione multi-banca. Il piano `base/free` limita a 1 banca.
 
 ## Albero di Connessioni (Firestore - Lato Database)
 
@@ -40,3 +40,4 @@ Il database è strutturato per l'utilizzo multi-tenant (SaaS):
 ### Regole Logiche Aggiuntive
 - **Conversioni Forex**: Se un Asset in portafoglio ha `currency == 'USD'` e la `targetCurrency` utente è 'EUR', il suo valore nel ricalcolo del Net Worth totale viene convertito a run-time.
 - **Zainetto Fiscale**: Viene generato sommando dinamicamente il delta (`currentPrice` - `entryPrice`) di ogni posizione investita. 
+- **Motore Offline-First**: Oltre alla sincronizzazione Cloud con Firestore, i dati del portafoglio sono cacheati in locale per l'accesso immediato anche in assenza di rete (es. utente in volo o restrizioni privacy massime).

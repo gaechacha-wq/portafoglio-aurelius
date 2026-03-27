@@ -8,9 +8,9 @@ Il progetto utilizza l'architettura a Livelli (Layered Architecture) implementat
 ## Struttura Cartella `lib/`
 
 1. **`core/`**
-   - Contiene file essenziali di configurazione.
+   - Contiene file essenziali di configurazione e routing.
    - `theme.dart`: Il "Design System" Glassmorphism (colori, dark theme, font Apple iOS).
-
+   - `router/app_router.dart`: Navigazione dichiarativa sicura gestita tramite `go_router` integrato in Riverpod.
 2. **`models/`**
    - Strutture Dati della Business Logic.
    - `asset_model.dart`, `subscription_model.dart` etc.
@@ -19,8 +19,9 @@ Il progetto utilizza l'architettura a Livelli (Layered Architecture) implementat
    - I "Motori" dell'applicazione (Nessuna UI qui).
    - `firebase_service.dart`: Interfaccia comunicazioni server/cloud.
    - `price_service.dart`: Sistema asincrono (Stream) fittizio/reale per aggiornamento ticker ogni tot secondi.
-   - `scanner_service.dart`: Interfaccia verso OCR / AI Gemini per parsing di estratti conto in dati strutturati.
+   - `scanner_service.dart`: Interfaccia verso OCR / AI Gemini (Vision LLM) per parsing automatico di estratti conto / screenshot bancari.
    - `subscription_service.dart`: Gestione stato abbonamenti (Riverpod `Notifier`).
+   - `tax_export_service.dart`: (Pianificato) Generatore asincrono del report fiscale CSV "Zainetto Fiscale".
 
 4. **`screens/`**
    - Le viste principali (Pagine intere).

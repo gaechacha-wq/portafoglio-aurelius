@@ -9,6 +9,16 @@ class AureliusTheme {
   static const Color secondaryText = Color(0xFF8E8E93);
   static const Color primaryText = Color(0xFFFFFFFF);
   
+  static const Color catFinanza = Color(0xFFD4AF37);
+  static const Color catCrypto = Color(0xFF00E5FF);
+  static const Color catRealEstate = Color(0xFF4CAF50);
+  static const Color catLusso = Color(0xFF9C27B0);
+  static const Color catCash = Color(0xFF607D8B);
+  static const Color catMetalli = Color(0xFFFF9800);
+  static const Color catPrevidenza = Color(0xFF03A9F4);
+  static const Color gainGreen = Color(0xFF4CAF50);
+  static const Color lossRed = Color(0xFFF44336);
+
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,

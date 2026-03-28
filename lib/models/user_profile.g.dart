@@ -1,0 +1,29 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'user_profile.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$UserProfileImpl _$$UserProfileImplFromJson(Map<String, dynamic> json) =>
+    _$UserProfileImpl(
+      id: json['id'] as String,
+      fullName: json['fullName'] as String,
+      email: json['email'] as String?,
+      totalBalance: (json['totalBalance'] as num?)?.toDouble() ?? 0.0,
+      isPremium: json['isPremium'] as bool? ?? false,
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+    );
+
+Map<String, dynamic> _$$UserProfileImplToJson(_$UserProfileImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'fullName': instance.fullName,
+      'email': instance.email,
+      'totalBalance': instance.totalBalance,
+      'isPremium': instance.isPremium,
+      'createdAt': instance.createdAt?.toIso8601String(),
+    };

@@ -253,7 +253,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               );
             },
             loading: () => SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) => const Padding(padding: EdgeInsets.symmetric(horizontal: 16, bottom: 16), child: BaseSkeletonLoader(width: double.infinity, height: 80)), childCount: 3),
+              delegate: SliverChildBuilderDelegate((context, index) => const Padding(padding: EdgeInsets.only(left: 16, right: 16, bottom: 16), child: BaseSkeletonLoader(width: double.infinity, height: 80)), childCount: 3),
             ),
             error: (e, st) => SliverFillRemaining(child: Center(child: Text("Errore", style: GoogleFonts.inter(color: Colors.red)))),
           ),

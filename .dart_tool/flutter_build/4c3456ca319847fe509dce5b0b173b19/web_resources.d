@@ -1,0 +1,1 @@
+ build/web/index.html build/web/manifest.json:  /Users/gaetano1/SVILUPPO/Portafoglio-Aurelius/web/index.html /Users/gaetano1/SVILUPPO/Portafoglio-Aurelius/web/manifest.json

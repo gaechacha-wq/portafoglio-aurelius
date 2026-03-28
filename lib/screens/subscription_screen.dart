@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../core/theme.dart';
-import '../widgets/glass_container.dart';
 import '../services/subscription_service.dart';
-import '../services/price_service.dart';
-import 'package:intl/intl.dart';
+import '../widgets/glass_container.dart';
 
 class SubscriptionScreen extends ConsumerWidget {
   const SubscriptionScreen({super.key});
@@ -14,229 +14,284 @@ class SubscriptionScreen extends ConsumerWidget {
     final currentTier = ref.watch(subscriptionProvider);
 
     return Scaffold(
+      backgroundColor: AureliusTheme.backgroundBlack,
       appBar: AppBar(
-        title: const Text('Upgrade ad Aurelius Premium'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () => context.pop(),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: Column(
           children: [
-            // Aurelius Sales Pitch
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const CircleAvatar(
-                  radius: 24,
-                  backgroundColor: AureliusTheme.accentGold,
-                  child: Icon(Icons.psychology, color: Colors.black, size: 30),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: GlassContainer(
-                    padding: const EdgeInsets.all(16),
-                    child: const Text(
-                      'Gestire un patrimonio complesso richiede strumenti d\'eccellenza. Il piano Wealth è quello che consiglio per la tua attuale asset allocation.',
-                      style: TextStyle(fontStyle: FontStyle.italic, height: 1.4),
-                    ),
-                  ),
-                )
-              ],
+            const SizedBox(height: 20),
+            const Icon(Icons.workspace_premium_rounded, size: 48, color: AureliusTheme.accentGold),
+            const SizedBox(height: 16),
+            Text(
+              "Sblocca il tuo Potenziale Finanziario",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 8),
+            Text(
+              "Scegli il piano che si adatta al tuo patrimonio.\nProva gratuita 14 giorni, nessun addebito immediato.",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w400, color: const Color(0xFF8E8E93)),
+            ),
+            const SizedBox(height: 32),
 
-            // Tier 1: Base
-            _PricingCard(
-              title: 'Base',
-              price: 'Gratis',
-              features: const [
-                '1 Singola Banca Esterna',
-                'Monitoraggio Manuale',
-                'Nessun Insight AI'
-              ],
-              isActive: currentTier == SubscriptionTier.base,
-              onTap: () => ref.read(subscriptionProvider.notifier).upgradeTo(SubscriptionTier.base),
-              isRecommended: false,
-            ),
+            // CARD CORE
+            _buildCoreCard(context, ref, currentTier),
             const SizedBox(height: 16),
 
-            // Tier 2: Pro
-            _PricingCard(
-              title: 'Pro',
-              price: '€ 9.99 / mese',
-              features: const [
-                'Multi-banca illimitato',
-                'AI Advisor Base',
-                'Scanner Screenshot Illimitato',
-                'Supporto Asset Criptovalute'
-              ],
-              isActive: currentTier == SubscriptionTier.pro,
-              onTap: () => ref.read(subscriptionProvider.notifier).upgradeTo(SubscriptionTier.pro),
-              isRecommended: false,
-            ),
+            // CARD PRO (Evidenziata)
+            _buildProCard(context, ref, currentTier),
             const SizedBox(height: 16),
 
-            // Tier 3: Wealth
-            _PricingCard(
-              title: 'Wealth Elite',
-              price: '€ 24.99 / mese',
-              features: const [
-                'Gestione Real Estate',
-                'Master Dashboard (Net Worth Totale)',
-                'Report Patrimoniale Mensile Esportabile',
-                'Priorità Aurelius AI Advisor'
-              ],
-              isActive: currentTier == SubscriptionTier.wealth,
-              onTap: () => ref.read(subscriptionProvider.notifier).upgradeTo(SubscriptionTier.wealth),
-              isRecommended: true,
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // Generate Report Button
-            if (currentTier.canExportPdf)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AureliusTheme.accentGold,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  icon: const Icon(Icons.picture_as_pdf),
-                  label: const Text('Esporta Report Patrimoniale', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  onPressed: () => _showTextReport(context, ref),
-                ),
-              )
+            // CARD WEALTH
+            _buildWealthCard(context, ref, currentTier),
+
+            const SizedBox(height: 32),
+            Text("🔒 Pagamento sicuro. Disdici quando vuoi.", textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF8E8E93))),
+            const SizedBox(height: 8),
+            Text("Tutti i prezzi includono IVA.", textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF8E8E93).withOpacity(0.6))),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
 
-  void _showTextReport(BuildContext context, WidgetRef ref) {
-    final assetsAsync = ref.read(portfolioProvider);
-    final assets = assetsAsync.valueOrNull ?? [];
-    
-    double realEstateValue = assets.where((a) => a.category == AssetCategory.realEstate).fold(0.0, (s, a) => s + a.totalNetValue);
-    double finanzaValue = assets.where((a) => a.category == AssetCategory.finanza).fold(0.0, (s, a) => s + a.totalNetValue);
-    double cashValue = assets.where((a) => a.category == AssetCategory.cash).fold(0.0, (s, a) => s + a.totalNetValue);
-    double cryptoValue = assets.where((a) => a.category == AssetCategory.crypto).fold(0.0, (s, a) => s + a.totalNetValue);
-    double liabilities = assets.fold(0.0, (sum, asset) => sum + asset.mortgageResidual);
-    
-    double totalWealth = realEstateValue + finanzaValue + cashValue + cryptoValue;
-    
-    final currencyFormatter = NumberFormat.currency(locale: 'it_IT', symbol: '€');
-
-    final String report = '''
----------------------------------
-REPORT PATRIMONIALE WEALTH ELITE
-Data: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}
----------------------------------
-
-NET WORTH TOTALE: ${currencyFormatter.format(totalWealth)}
-
-Ripartizione Asset:
-- Finanza Tradizionale: ${currencyFormatter.format(finanzaValue)}
-- Frontiera Crypto: ${currencyFormatter.format(cryptoValue)}
-- Liquidità (Cash): ${currencyFormatter.format(cashValue)}
-- Immobiliare (Netto): ${currencyFormatter.format(realEstateValue)}
-
-Passività In Essere:
-- Mutui/Prestiti: ${currencyFormatter.format(liabilities)}
-
-Un servizio esclusivo di Portafoglio Aurelius.
-''';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AureliusTheme.cardDark,
-        title: const Text('Report Generato', style: TextStyle(color: AureliusTheme.accentGold)),
-        content: SingleChildScrollView(
-          child: Text(report, style: const TextStyle(fontFamily: 'Courier', fontSize: 12)),
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Chiudi', style: TextStyle(color: Colors.white)),
-            onPressed: () => Navigator.pop(ctx),
-          )
+  Widget _buildFeatureLine(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle_outline, color: AureliusTheme.accentGold, size: 16),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: GoogleFonts.inter(fontSize: 14, color: Colors.white))),
         ],
-      )
+      ),
     );
   }
-}
 
-class _PricingCard extends StatelessWidget {
-  final String title;
-  final String price;
-  final List<String> features;
-  final bool isActive;
-  final VoidCallback onTap;
-  final bool isRecommended;
+  Widget _buildDivider() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      height: 1,
+      color: Colors.white.withOpacity(0.1),
+    );
+  }
 
-  const _PricingCard({
-    required this.title,
-    required this.price,
-    required this.features,
-    required this.isActive,
-    required this.onTap,
-    required this.isRecommended,
-  });
+  Widget _buildCurrentPlanIndicator() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: Text("✓ Piano attuale", textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF4CAF50))),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isActive ? AureliusTheme.accentGold : Colors.white12,
-            width: isActive ? 2 : 1,
-          ),
-          boxShadow: isActive ? [
-             BoxShadow(color: AureliusTheme.accentGold.withOpacity(0.2), blurRadius: 20, spreadRadius: 2)
-          ] : null,
-        ),
-        child: GlassContainer(
-          padding: const EdgeInsets.all(20),
-          borderRadius: 20,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildCoreCard(BuildContext context, WidgetRef ref, SubscriptionTier currentTier) {
+    final bool isActive = currentTier == SubscriptionTier.base;
+
+    return GlassContainer(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (isRecommended)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: AureliusTheme.accentGold, borderRadius: BorderRadius.circular(20)),
-                  child: const Text('CONSIGLIATO DA AURELIUS', style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isActive ? AureliusTheme.accentGold : Colors.white)),
-                  if (isActive) const Icon(Icons.check_circle, color: AureliusTheme.accentGold),
+                  Text("Core", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text("Per iniziare", style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF8E8E93))),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(price, style: const TextStyle(fontSize: 18, color: AureliusTheme.secondaryText)),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Divider(color: Colors.white12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text("€9,99", style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text("/mese", style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF8E8E93))),
+                ],
               ),
-              ...features.map((f) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check, size: 16, color: Colors.greenAccent),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(f)),
-                  ],
-                ),
-              ))
             ],
           ),
+          _buildDivider(),
+          _buildFeatureLine("Asset illimitati inserimento manuale"),
+          _buildFeatureLine("2 integrazioni bancarie"),
+          _buildFeatureLine("Storico 12 mesi"),
+          _buildFeatureLine("Privacy Mode"),
+          _buildFeatureLine("Export CSV"),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AureliusTheme.accentGold),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                ref.read(subscriptionProvider.notifier).upgradeTo(SubscriptionTier.base);
+                context.pop();
+              },
+              child: Text("Inizia ora", style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: AureliusTheme.accentGold)),
+            ),
+          ),
+          if (isActive) _buildCurrentPlanIndicator(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProCard(BuildContext context, WidgetRef ref, SubscriptionTier currentTier) {
+    final bool isActive = currentTier == SubscriptionTier.pro;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            border: Border.all(color: AureliusTheme.accentGold, width: 1.5),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: GlassContainer(
+            margin: EdgeInsets.zero,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Pro", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text("Per investitori attivi", style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF8E8E93))),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text("€24,99", style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.bold, color: AureliusTheme.accentGold)),
+                        Text("/mese", style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF8E8E93))),
+                      ],
+                    ),
+                  ],
+                ),
+                _buildDivider(),
+                _buildFeatureLine("Tutto di Core"),
+                _buildFeatureLine("Integrazioni automatiche illimitate"),
+                _buildFeatureLine("Performance per categoria"),
+                _buildFeatureLine("Scenario Planner"),
+                _buildFeatureLine("Document Vault"),
+                _buildFeatureLine("Advisor sharing (1 utente)"),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AureliusTheme.accentGold,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      ref.read(subscriptionProvider.notifier).upgradeTo(SubscriptionTier.pro);
+                      context.pop();
+                    },
+                    child: Text("Scegli Pro", style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                if (isActive) _buildCurrentPlanIndicator(),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          top: -12,
+          right: 16,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AureliusTheme.accentGold,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text("Il più scelto", style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWealthCard(BuildContext context, WidgetRef ref, SubscriptionTier currentTier) {
+    final bool isActive = currentTier == SubscriptionTier.wealth;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: GlassContainer(
+        margin: EdgeInsets.zero,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Wealth", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text("Per patrimoni complessi", style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF8E8E93))),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text("€79,99", style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text("/mese", style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF8E8E93))),
+                  ],
+                ),
+              ],
+            ),
+            _buildDivider(),
+            _buildFeatureLine("Tutto di Pro"),
+            _buildFeatureLine("Master Dashboard patrimoniale"),
+            _buildFeatureLine("Family Office (5 utenti)"),
+            _buildFeatureLine("Tax Engine avanzato"),
+            _buildFeatureLine("Report PDF per commercialista"),
+            _buildFeatureLine("Supporto dedicato"),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.white.withOpacity(0.6)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  ref.read(subscriptionProvider.notifier).upgradeTo(SubscriptionTier.wealth);
+                  context.pop();
+                }, // Pop chiude programmaticamente l'Onboarding / PayWall e aggiorna i layer
+                child: Text("Scegli Wealth", style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+              ),
+            ),
+            if (isActive) _buildCurrentPlanIndicator(),
+          ],
         ),
       ),
     );

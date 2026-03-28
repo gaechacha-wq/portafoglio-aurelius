@@ -2,19 +2,11 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-enum AssetCategory { finanza, realEstate, cash, crypto, metalli, lusso, previdenza }
+import '../models/asset_model.dart';
 
 // Stato globale per la Privacy Mode e Target Currency
 final privacyModeProvider = StateProvider<bool>((ref) => false);
 final targetCurrencyProvider = StateProvider<String>((ref) => 'EUR'); // 'EUR', 'USD', 'GBP'
-
-// Tassi di cambio simulati
-const Map<String, Map<String, double>> _forexRates = {
-  'EUR': {'USD': 1.08, 'GBP': 0.85, 'EUR': 1.0},
-  'USD': {'EUR': 0.92, 'GBP': 0.78, 'USD': 1.0},
-  'GBP': {'EUR': 1.17, 'USD': 1.28, 'GBP': 1.0},
-};
 
 // Obiettivo Finanziario (Savings Goal)
 final savingsGoalProvider = StateProvider<double>((ref) => 1000000.0); // 1 Milione di default
@@ -30,159 +22,11 @@ class CashflowProfile {
 }
 final cashflowProvider = Provider<CashflowProfile>((ref) => const CashflowProfile(personalIncome: 45000, spouseIncome: 38000));
 
-class Asset {
-  final String id;
-  final String ticker;
-  final String name;
-  final double entryPrice;
-  final double currentPrice;
-  final double quantity;
-  final String bank;
-  final AssetCategory category;
-  
-  // Specifico per gli Immobili
-  final double mortgageResidual;
-  final double monthlyRent;
-
-  // Specifico per le Criptovalute
-  final String cryptoLocation; // Es. "Binance", "Cold Wallet Ledger"
-
-  // Specifico per Previdenza/Assicurazioni
-  final DateTime? expirationDate;
-
-  // Valuta di Denominazione
-  final String currency; // 'EUR' o 'USD'
-
-  // Annotazioni personali
-  final String? notes;
-
-  // Ritorna il tasso di conversione verso una valuta target
-  double conversionRate(String targetCurrency) {
-    return _forexRates[currency]?[targetCurrency] ?? 1.0;
-  }
-
-  // Valore corretto in una valuta specifica (Forex Engine)
-  double totalNetValueIn(String targetCurrency) => totalNetValue * conversionRate(targetCurrency);
-  double totalGrossValueIn(String targetCurrency) => totalGrossValue * conversionRate(targetCurrency);
-
-  // Manteniamo questi per compatibilità retroattiva o default
-  double get totalNetValueEur => totalNetValueIn('EUR');
-  double get totalGrossValueEur => totalGrossValueIn('EUR');
-
-  Asset({
-    required this.id,
-    required this.ticker,
-    required this.name,
-    required this.entryPrice,
-    required this.currentPrice,
-    required this.quantity,
-    required this.bank,
-    this.category = AssetCategory.finanza,
-    this.mortgageResidual = 0.0,
-    this.monthlyRent = 0.0,
-    this.cryptoLocation = '',
-    this.expirationDate,
-    this.currency = 'EUR',
-    this.notes,
-  });
-
-  factory Asset.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map<String, dynamic>;
-    return Asset(
-      id: doc.id,
-      ticker: data['ticker'] ?? '',
-      name: data['name'] ?? '',
-      entryPrice: (data['entryPrice'] ?? 0.0).toDouble(),
-      currentPrice: (data['currentPrice'] ?? 0.0).toDouble(),
-      quantity: (data['quantity'] ?? 0.0).toDouble(),
-      bank: data['bank'] ?? 'Non Assegnata',
-      category: _parseCategory(data['category']),
-      mortgageResidual: (data['mortgageResidual'] ?? 0.0).toDouble(),
-      monthlyRent: (data['monthlyRent'] ?? 0.0).toDouble(),
-      cryptoLocation: data['cryptoLocation'] ?? '',
-      expirationDate: data['expirationDate'] != null ? (data['expirationDate'] as Timestamp).toDate() : null,
-      currency: data['currency'] ?? 'EUR',
-      notes: data['notes'],
-    );
-  }
-
-  static AssetCategory _parseCategory(String? catStr) {
-    switch (catStr) {
-      case 'realEstate': return AssetCategory.realEstate;
-      case 'cash': return AssetCategory.cash;
-      case 'crypto': return AssetCategory.crypto;
-      case 'metalli': return AssetCategory.metalli;
-      case 'lusso': return AssetCategory.lusso;
-      case 'previdenza': return AssetCategory.previdenza;
-      default: return AssetCategory.finanza;
-    }
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'ticker': ticker,
-      'name': name,
-      'entryPrice': entryPrice,
-      'currentPrice': currentPrice,
-      'quantity': quantity,
-      'bank': bank,
-      'category': category.name,
-      'mortgageResidual': mortgageResidual,
-      'monthlyRent': monthlyRent,
-      'cryptoLocation': cryptoLocation,
-      'expirationDate': expirationDate != null ? Timestamp.fromDate(expirationDate!) : null,
-      'currency': currency,
-      'notes': notes,
-    };
-  }
-
-  // Il valore patrimoniale lordo
-  double get totalGrossValue => currentPrice * quantity;
-  
-  // Valore patrimoniale netto (Sottrae il debito residuo se presente)
-  double get totalNetValue => totalGrossValue - mortgageResidual;
-  
-  double get totalEntryValue => entryPrice * quantity;
-  double get profitLoss => totalGrossValue - totalEntryValue;
-  double get profitLossPercent => (currentPrice - entryPrice) / entryPrice * 100;
-
-  Asset copyWith({
-    String? id,
-    String? ticker,
-    String? name,
-    double? entryPrice,
-    double? currentPrice,
-    double? quantity,
-    String? bank,
-    AssetCategory? category,
-    double? mortgageResidual,
-    double? monthlyRent,
-    String? cryptoLocation,
-    DateTime? expirationDate,
-    String? currency,
-    String? notes,
-  }) {
-    return Asset(
-      id: id ?? this.id,
-      ticker: ticker ?? this.ticker,
-      name: name ?? this.name,
-      entryPrice: entryPrice ?? this.entryPrice,
-      currentPrice: currentPrice ?? this.currentPrice,
-      quantity: quantity ?? this.quantity,
-      bank: bank ?? this.bank,
-      category: category ?? this.category,
-      mortgageResidual: mortgageResidual ?? this.mortgageResidual,
-      monthlyRent: monthlyRent ?? this.monthlyRent,
-      cryptoLocation: cryptoLocation ?? this.cryptoLocation,
-      expirationDate: expirationDate ?? this.expirationDate,
-      currency: currency ?? this.currency,
-      notes: notes ?? this.notes,
-    );
-  }
-}
+// Classe Asset e _forexRates migrate in lib/models/asset_model.dart
 
 // Filtro corrente della dashboard
 final selectedBankFilterProvider = StateProvider<String>((ref) => 'Tutte');
+final selectedCategoryFilterProvider = StateProvider<String>((ref) => 'Tutte');
 
 // Stream da Firebase
 final portfolioProvider = StreamProvider<List<Asset>>((ref) {
@@ -248,13 +92,33 @@ Stream<List<Asset>> _createHybridSimulationStream() async* {
 // Getter per calcoli globali o filtrati
 final filteredPortfolioProvider = Provider<List<Asset>>((ref) {
   final bankFilter = ref.watch(selectedBankFilterProvider);
+  final categoryFilter = ref.watch(selectedCategoryFilterProvider);
   final portfolioAsync = ref.watch(portfolioProvider);
   
   return portfolioAsync.maybeWhen(
     data: (assets) {
-      if (bankFilter == 'Tutte') return assets;
-      // Immobili, Crypto e Lusso spesso si filtrano diversamente. Mostriamo tutto il patrimonio trasversale.
-      return assets.where((a) => a.bank == bankFilter || a.category != AssetCategory.finanza).toList();
+      List<Asset> result = assets;
+
+      if (categoryFilter != 'Tutte') {
+        result = result.where((a) {
+          switch (categoryFilter) {
+            case 'Finanza': return a.category == AssetCategory.finanza;
+            case 'Crypto': return a.category == AssetCategory.crypto;
+            case 'Immobili': return a.category == AssetCategory.realEstate;
+            case 'Lusso': return a.category == AssetCategory.lusso;
+            case 'Liquidità': return a.category == AssetCategory.cash;
+            case 'Metalli': return a.category == AssetCategory.metalli;
+            case 'Previdenza': return a.category == AssetCategory.previdenza;
+            default: return true;
+          }
+        }).toList();
+      }
+
+      if (bankFilter != 'Tutte') {
+        result = result.where((a) => a.bank == bankFilter || a.category != AssetCategory.finanza).toList();
+      }
+
+      return result;
     },
     orElse: () => [],
   );

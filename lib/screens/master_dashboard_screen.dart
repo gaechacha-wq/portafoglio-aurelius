@@ -1,670 +1,536 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../core/theme.dart';
-import '../widgets/glass_container.dart';
-import '../widgets/neon_glass_container.dart';
+import '../models/asset_model.dart';
 import '../services/price_service.dart';
-import '../services/ai_aurelius_service.dart';
-import 'dart:ui';
-import 'package:flutter/services.dart';
+import '../services/subscription_service.dart';
+import '../widgets/glass_container.dart';
+
+final touchedCategoryIndexProvider = StateProvider.autoDispose<int>((ref) => -1);
 
 class MasterDashboardScreen extends ConsumerWidget {
   const MasterDashboardScreen({super.key});
 
+  Color _getCategoryColor(AssetCategory cat) {
+    switch (cat) {
+      case AssetCategory.finanza: return const Color(0xFFD4AF37);
+      case AssetCategory.crypto: return const Color(0xFF00E5FF);
+      case AssetCategory.realEstate: return const Color(0xFF4CAF50);
+      case AssetCategory.lusso: return const Color(0xFF9C27B0);
+      case AssetCategory.cash: return const Color(0xFF607D8B);
+      case AssetCategory.metalli: return const Color(0xFFFF9800);
+      case AssetCategory.previdenza: return const Color(0xFF03A9F4);
+    }
+  }
+
+  String _getCategoryName(AssetCategory cat) {
+    switch (cat) {
+      case AssetCategory.finanza: return "Finanza";
+      case AssetCategory.crypto: return "Crypto";
+      case AssetCategory.realEstate: return "Immobili";
+      case AssetCategory.lusso: return "Lusso";
+      case AssetCategory.cash: return "Liquidità";
+      case AssetCategory.metalli: return "Metalli";
+      case AssetCategory.previdenza: return "Previdenza";
+    }
+  }
+
+  IconData _getCategoryIcon(AssetCategory cat) {
+    switch (cat) {
+      case AssetCategory.finanza: return Icons.trending_up;
+      case AssetCategory.crypto: return Icons.currency_bitcoin;
+      case AssetCategory.realEstate: return Icons.home;
+      case AssetCategory.lusso: return Icons.diamond;
+      case AssetCategory.cash: return Icons.account_balance_wallet;
+      case AssetCategory.metalli: return Icons.savings;
+      case AssetCategory.previdenza: return Icons.shield;
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final netWorth = ref.watch(masterNetWorthProvider);
-    final grossAssets = ref.watch(masterAssetsGrossValueProvider);
-    final liabilities = ref.watch(masterLiabilitiesProvider);
-    final isPrivacy = ref.watch(privacyModeProvider);
-    final targetCurr = ref.watch(targetCurrencyProvider);
-    final cashflow = ref.watch(cashflowProvider);
-    final savingsGoal = ref.watch(savingsGoalProvider);
+    final subTier = ref.watch(subscriptionProvider);
     
-    String symbol = '€';
-    String locale = 'it_IT';
-    if (targetCurr == 'USD') { symbol = '\$'; locale = 'en_US'; }
-    if (targetCurr == 'GBP') { symbol = '£'; locale = 'en_GB'; }
-    final currencyFormatter = NumberFormat.currency(locale: locale, symbol: symbol);
-    
-    // Allocation Chart Data & AI Advice
-    final assetsAsync = ref.watch(portfolioProvider);
-    final aiRef = ref.watch(aiAdvisorProvider);
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestione Globale Patrimonio'),
-        actions: [
-          DropdownButton<String>(
-            value: targetCurr,
-            dropdownColor: AureliusTheme.cardDark,
-            underline: const SizedBox(),
-            icon: const Padding(
-              padding: EdgeInsets.only(left: 4.0),
-              child: Icon(Icons.arrow_drop_down, color: AureliusTheme.accentGold),
+    // GATE ESCLUSIVO: WEALTH
+    if (!subTier.canAccessMasterWealth) {
+      return Scaffold(
+        backgroundColor: AureliusTheme.backgroundBlack,
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.lock_rounded, size: 80, color: AureliusTheme.accentGold),
+                const SizedBox(height: 24),
+                Text("Funzione Wealth Exclusive", style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 12),
+                Text("Questa vista è disponibile\nper il piano Wealth.", textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF8E8E93))),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AureliusTheme.accentGold,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => context.go('/subscription'),
+                    child: Text("Scopri il Piano Wealth", style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ),
+              ],
             ),
-            style: const TextStyle(color: AureliusTheme.accentGold, fontWeight: FontWeight.bold),
-            items: ['EUR', 'USD', 'GBP'].map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (newValue) {
-              if (newValue != null) {
-                ref.read(targetCurrencyProvider.notifier).state = newValue;
-              }
-            },
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(CupertinoIcons.share_up, color: AureliusTheme.accentGold),
-            color: AureliusTheme.cardDark,
-            onSelected: (value) {
-              if (value == 'tax') _generateTaxReport(context, ref);
-              if (value == 'csv') _generateCsvExport(context, ref);
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'tax',
-                child: Row(
-                  children: [Icon(CupertinoIcons.doc_text, color: AureliusTheme.accentGold, size: 20), SizedBox(width: 8), Text('Report Fiscale')],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'csv',
-                child: Row(
-                  children: [Icon(CupertinoIcons.table, color: Colors.greenAccent, size: 20), SizedBox(width: 8), Text('Esporta CSV')],
-                ),
-              ),
-            ],
-          )
+        ),
+      );
+    }
+
+    final isPrivacyActive = ref.watch(privacyModeProvider);
+    final targetCurrency = ref.watch(targetCurrencyProvider);
+    final netWorth = ref.watch(masterNetWorthProvider);
+    final grossValue = ref.watch(masterAssetsGrossValueProvider);
+    final liabilities = ref.watch(masterLiabilitiesProvider);
+    final savingsGoal = ref.watch(savingsGoalProvider);
+    final portfolioAsync = ref.watch(portfolioProvider);
+
+    final currencyFormat = NumberFormat.currency(
+      locale: 'it_IT', 
+      symbol: targetCurrency == 'EUR' ? '€' : (targetCurrency == 'USD' ? '\$' : '£')
+    );
+
+    return Scaffold(
+      backgroundColor: AureliusTheme.backgroundBlack,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text("Patrimonio Globale", style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AureliusTheme.accentGold)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => context.pop()),
+        actions: [
+          IconButton(
+            icon: Icon(isPrivacyActive ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: Colors.white),
+            onPressed: () => ref.read(privacyModeProvider.notifier).state = !isPrivacyActive,
+          ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Net Worth Card with FLUID ANIMATION
-            GlassContainer(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text('NET WORTH', 
-                    style: TextStyle(
-                      color: AureliusTheme.accentGold, 
-                      letterSpacing: 2.0, 
-                      fontSize: 14, 
-                      fontWeight: FontWeight.bold
-                    )
-                  ),
-                  const SizedBox(height: 12),
-                  // Animazione fluida del numero!
-                  Hero(
-                    tag: 'master_balance',
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: TweenAnimationBuilder<double>(
-                        duration: const Duration(seconds: 2),
-                        curve: Curves.easeOutCubic,
-                        tween: Tween<double>(begin: 0, end: netWorth),
-                        builder: (context, value, child) {
-                          return Semantics(
-                            label: 'Patrimonio netto totale',
-                            value: currencyFormatter.format(value),
-                            child: isPrivacy
-                              ? ImageFiltered(
-                                  imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                                  child: Text('$symbol *******', style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 48, fontWeight: FontWeight.bold))
-                                )
-                              : Text(currencyFormatter.format(value), 
-                                  style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 48, fontWeight: FontWeight.bold)
-                                ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _MetricCol(title: '∑ Assets', value: currencyFormatter.format(grossAssets), color: Colors.greenAccent),
-                      Container(height: 40, width: 1, color: Colors.white24),
-                      _MetricCol(title: '∑ Passività', value: currencyFormatter.format(liabilities), color: Colors.redAccent),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // Obiettivo Finanziario
-            Text('Obiettivo Finanziario', style: Theme.of(context).textTheme.titleLarge),
+            _buildCard1(isPrivacyActive, netWorth, grossValue, liabilities, currencyFormat, targetCurrency),
             const SizedBox(height: 16),
-            GlassContainer(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   Row(
-                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                     children: [
-                       const Text('Progresso Verso il Traguardo', style: TextStyle(color: Colors.white70)),
-                       Text('${(netWorth / savingsGoal * 100).clamp(0, 100).toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold, color: AureliusTheme.accentGold)),
-                     ],
-                   ),
-                   const SizedBox(height: 16),
-                   ClipRRect(
-                     borderRadius: BorderRadius.circular(10),
-                     child: LinearProgressIndicator(
-                       value: (netWorth / savingsGoal).clamp(0.0, 1.0),
-                       minHeight: 12,
-                       backgroundColor: Colors.white10,
-                       valueColor: const AlwaysStoppedAnimation<Color>(AureliusTheme.accentGold),
-                     ),
-                   ),
-                   const SizedBox(height: 12),
-                   Row(
-                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                     children: [
-                       Text(currencyFormatter.format(netWorth), style: const TextStyle(fontSize: 12)),
-                       Text('Obiettivo: ${currencyFormatter.format(savingsGoal)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                     ],
-                   )
-                ],
-              )
+            portfolioAsync.when(
+              data: (assets) => _buildCard2And3Info(context, ref, assets, targetCurrency, isPrivacyActive, currencyFormat),
+              loading: () => const Center(child: CircularProgressIndicator(color: AureliusTheme.accentGold)),
+              error: (e, st) => GlassContainer(child: Text("Errore", style: GoogleFonts.inter(color: Colors.red))),
             ),
-            const SizedBox(height: 30),
-
-            // Cashflow Family Section
-            Text('Flussi di Cassa Annuali (Famiglia)', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 20),
-            GlassContainer(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Reddito Personale Netto', style: TextStyle(color: Colors.white70)),
-                      Text(currencyFormatter.format(cashflow.personalIncome), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Reddito Coniuge Netto', style: TextStyle(color: Colors.white70)),
-                      Text(currencyFormatter.format(cashflow.spouseIncome), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Entrate Familiari Totali', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text(currencyFormatter.format(cashflow.familyIncome), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.greenAccent, fontSize: 16)),
-                    ],
-                  ),
-                ],
-              )
+            const SizedBox(height: 16),
+            portfolioAsync.when(
+              data: (assets) => _buildCard4(assets, targetCurrency, isPrivacyActive, currencyFormat),
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
             ),
-            const SizedBox(height: 30),
-
-            // AI Allocation Advice
-            FutureBuilder<String>(
-              future: aiRef.analyzeAllocation(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: AureliusTheme.accentGold));
-                }
-                final advice = snapshot.data ?? 'Analisi non disponibile.';
-                return GlassContainer(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.psychology, color: AureliusTheme.accentGold, size: 30),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Aurelius Advice', style: TextStyle(fontWeight: FontWeight.bold, color: AureliusTheme.accentGold)),
-                            const SizedBox(height: 4),
-                            Text(advice, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.4)),
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
-                );
-              }
-            ),
-            const SizedBox(height: 30),
-
-            // Advanced Asset Allocation Pie Chart
-            Text('Ripartizione Globale', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 20),
-            GlassContainer(
-              width: double.infinity,
-              height: 280,
-              padding: const EdgeInsets.all(20),
-              child: assetsAsync.maybeWhen(
-                data: (assets) {
-                  double realEstateValue = assets.where((a) => a.category == AssetCategory.realEstate).fold(0.0, (s, a) => s + a.totalNetValue);
-                  double finanzaValue = assets.where((a) => a.category == AssetCategory.finanza).fold(0.0, (s, a) => s + a.totalNetValue);
-                  double cryptoValue = assets.where((a) => a.category == AssetCategory.crypto).fold(0.0, (s, a) => s + a.totalNetValue);
-                  double cashValue = assets.where((a) => a.category == AssetCategory.cash).fold(0.0, (s, a) => s + a.totalNetValue);
-                  double metalliValue = assets.where((a) => a.category == AssetCategory.metalli).fold(0.0, (s, a) => s + a.totalNetValue);
-                  double lussoValue = assets.where((a) => a.category == AssetCategory.lusso).fold(0.0, (s, a) => s + a.totalNetValue);
-                  double previdenzaValue = assets.where((a) => a.category == AssetCategory.previdenza).fold(0.0, (s, a) => s + a.totalNetValue);
-                  
-                  // Gruppo Investimenti (Finanza + Crypto)
-                  double investimentiValue = finanzaValue + cryptoValue;
-                  
-                  double total = realEstateValue + investimentiValue + cashValue + metalliValue + lussoValue + previdenzaValue;
-                  if (total == 0) return const Center(child: Text('Nessun Asset.'));
-                  
-                  return Row(
-                    children: [
-                      Expanded(
-                        flex: 5,
-                        child: PieChart(
-                          PieChartData(
-                            sectionsSpace: 3,
-                            centerSpaceRadius: 40,
-                            sections: [
-                              PieChartSectionData(
-                                color: Colors.blueAccent, 
-                                value: investimentiValue, 
-                                title: '${(investimentiValue/total*100).toStringAsFixed(0)}%',
-                                radius: 50,
-                                titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 10),
-                              ),
-                              PieChartSectionData(
-                                color: AureliusTheme.accentGold, 
-                                value: realEstateValue, 
-                                title: '${(realEstateValue/total*100).toStringAsFixed(0)}%',
-                                radius: 60,
-                                titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 10),
-                              ),
-                              PieChartSectionData(
-                                color: Colors.greenAccent, 
-                                value: cashValue, 
-                                title: '${(cashValue/total*100).toStringAsFixed(0)}%',
-                                radius: 45,
-                                titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 10),
-                              ),
-                              if (metalliValue > 0)
-                                PieChartSectionData(
-                                  color: Colors.blueGrey, 
-                                  value: metalliValue, 
-                                  title: '${(metalliValue/total*100).toStringAsFixed(0)}%',
-                                  radius: 40,
-                                  titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 10),
-                                ),
-                              if (lussoValue > 0)
-                                PieChartSectionData(
-                                  color: const Color(0xFF800020), // Bordeaux
-                                  value: lussoValue, 
-                                  title: '${(lussoValue/total*100).toStringAsFixed(0)}%',
-                                  radius: 48,
-                                  titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 10),
-                                ),
-                              if (previdenzaValue > 0)
-                                PieChartSectionData(
-                                  color: Colors.purpleAccent, 
-                                  value: previdenzaValue, 
-                                  title: '${(previdenzaValue/total*100).toStringAsFixed(0)}%',
-                                  radius: 42,
-                                  titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 10),
-                                ),
-                            ]
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 4,
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _Legend(color: Colors.blueAccent, title: 'Investimenti\n(Finanza+Crypto)'),
-                              const SizedBox(height: 12),
-                              _Legend(color: AureliusTheme.accentGold, title: 'Immobiliare'),
-                              const SizedBox(height: 12),
-                              _Legend(color: Colors.greenAccent, title: 'Liquidità'),
-                              if (metalliValue > 0) ...[
-                                const SizedBox(height: 12),
-                                _Legend(color: Colors.blueGrey, title: 'Metalli'),
-                              ],
-                              if (lussoValue > 0) ...[
-                                const SizedBox(height: 12),
-                                _Legend(color: const Color(0xFF800020), title: 'Beni di Lusso'),
-                              ],
-                              if (previdenzaValue > 0) ...[
-                                const SizedBox(height: 12),
-                                _Legend(color: Colors.purpleAccent, title: 'Previdenza'),
-                              ],
-                            ],
-                          ),
-                        ),
-                      )
-                    ],
-                  );
-                },
-                orElse: () => const Center(child: CircularProgressIndicator(color: AureliusTheme.accentGold)),
-              ),
-            ),
-            
+            const SizedBox(height: 16),
+            _buildCard5(context, ref, netWorth, savingsGoal, currencyFormat),
             const SizedBox(height: 40),
-            Text('Composizione Portafoglio', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 20),
-            
-            // List of specific assets grouped by Liability and Assets for the Dashboard
-            assetsAsync.maybeWhen(
-              data: (assets) {
-                final realEstates = assets.where((a) => a.category == AssetCategory.realEstate).toList();
-                final cryptos = assets.where((a) => a.category == AssetCategory.crypto).toList();
-                
-                return Column(
-                   children: [
-                     if (realEstates.isNotEmpty) ...[
-                        Row(
-                          children: [
-                            const Icon(CupertinoIcons.building_2_fill, color: AureliusTheme.accentGold),
-                            const SizedBox(width: 8),
-                            Text('Passività / Mutui', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AureliusTheme.accentGold)),
-                           ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...realEstates.map((re) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: GlassContainer(
-                             padding: const EdgeInsets.all(16),
-                             child: Row(
-                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                               children: [
-                                 Column(
-                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                   children: [
-                                     Text(re.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                     Text('Valore: ${currencyFormatter.format(re.totalGrossValue)}', style: Theme.of(context).textTheme.bodySmall),
-                                   ],
-                                 ),
-                                 Column(
-                                   crossAxisAlignment: CrossAxisAlignment.end,
-                                   children: [
-                                     Text('- ${currencyFormatter.format(re.mortgageResidual)}', style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16)),
-                                     Text('Mutuo Residuo', style: Theme.of(context).textTheme.bodySmall),
-                                   ],
-                                 )
-                               ]
-                             )
-                          ),
-                        )),
-                        const SizedBox(height: 20),
-                     ],
-                     
-                     if (cryptos.isNotEmpty) ...[
-                        Row(
-                          children: [
-                            const Icon(Icons.memory, color: Colors.blueAccent),
-                            const SizedBox(width: 8),
-                            Text('Frontiera Digitale (Crypto)', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.blueAccent)),
-                           ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...cryptos.map((c) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: NeonGlassContainer(
-                             glowColor: Colors.blueAccent,
-                             padding: const EdgeInsets.all(16),
-                             child: Row(
-                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                               children: [
-                                 Column(
-                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                   children: [
-                                     Text(c.ticker, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, shadows: [Shadow(color: Colors.blueAccent, blurRadius: 4)])),
-                                     Text(c.cryptoLocation, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.lightBlue)),
-                                   ],
-                                 ),
-                                 Column(
-                                   crossAxisAlignment: CrossAxisAlignment.end,
-                                   children: [
-                                     Text(currencyFormatter.format(c.totalNetValue), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                     Text('${c.quantity} pz', style: Theme.of(context).textTheme.bodySmall),
-                                   ],
-                                 )
-                               ]
-                             )
-                          ),
-                        )),
-                        const SizedBox(height: 20),
-                     ],
-                     
-                     if (assets.any((a) => a.category == AssetCategory.metalli)) ...[
-                        Row(
-                          children: [
-                            const Icon(CupertinoIcons.sparkles, color: Colors.blueGrey),
-                            const SizedBox(width: 8),
-                            Text('Metalli Preziosi', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.blueGrey)),
-                           ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...assets.where((a) => a.category == AssetCategory.metalli).map((m) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: GlassContainer(
-                             padding: const EdgeInsets.all(16),
-                             child: Row(
-                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                               children: [
-                                 Column(
-                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                   children: [
-                                     Text(m.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                     Text(m.bank, style: Theme.of(context).textTheme.bodySmall),
-                                   ],
-                                 ),
-                                 Text(currencyFormatter.format(m.totalNetValue), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                               ]
-                             )
-                          ),
-                        )),
-                        const SizedBox(height: 20),
-                     ],
-                     
-                     if (assets.any((a) => a.category == AssetCategory.lusso)) ...[
-                        Row(
-                          children: [
-                            const Icon(CupertinoIcons.car_detailed, color: Color(0xFF800020)),
-                            const SizedBox(width: 8),
-                            Text('Beni di Lusso', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: const Color(0xFF800020))),
-                           ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...assets.where((a) => a.category == AssetCategory.lusso).map((l) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: GlassContainer(
-                             padding: const EdgeInsets.all(16),
-                             child: Row(
-                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                               children: [
-                                 Column(
-                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                   children: [
-                                     Text(l.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                     Text(l.bank, style: Theme.of(context).textTheme.bodySmall),
-                                   ],
-                                 ),
-                                 Text(currencyFormatter.format(l.totalNetValue), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                               ]
-                             )
-                          ),
-                        )),
-                        const SizedBox(height: 20),
-                     ],
-                     
-                     if (assets.any((a) => a.category == AssetCategory.previdenza)) ...[
-                        Row(
-                          children: [
-                            const Icon(CupertinoIcons.money_dollar_circle_fill, color: Colors.purpleAccent),
-                            const SizedBox(width: 8),
-                            Text('Previdenza & Vita', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.purpleAccent)),
-                           ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...assets.where((a) => a.category == AssetCategory.previdenza).map((p) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: GlassContainer(
-                             padding: const EdgeInsets.all(16),
-                             child: Row(
-                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                               children: [
-                                 Column(
-                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                   children: [
-                                     Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                     if (p.expirationDate != null)
-                                       Text('Scadenza: ${DateFormat('MM/yyyy').format(p.expirationDate!)}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.purpleAccent)),
-                                   ],
-                                 ),
-                                 Text(currencyFormatter.format(p.totalNetValue), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                               ]
-                             )
-                          ),
-                        )),
-                     ]
-                   ]
-                );
-              },
-              orElse: () => const SizedBox(),
-            ),
-             const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  void _generateTaxReport(BuildContext context, WidgetRef ref) {
-    final assetsAsync = ref.read(portfolioProvider);
-    
-    assetsAsync.whenData((assets) {
-      double plusvalenze = 0;
-      double minusvalenze = 0;
-      StringBuffer report = StringBuffer();
-
-      report.writeln('=== REPORT FISCALE: ZAINETTO AURELIUS ===\n');
-      report.writeln('Generato il: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}\n');
-      report.writeln('-----------------------------------------');
-
-      for (var a in assets) {
-        if (a.category == AssetCategory.finanza || a.category == AssetCategory.crypto) {
-          if (a.profitLoss > 0) {
-            plusvalenze += a.profitLoss;
-            report.writeln('[+] ${a.ticker} (${a.bank}): +€${a.profitLoss.toStringAsFixed(2)}');
-          } else if (a.profitLoss < 0) {
-            minusvalenze += a.profitLoss.abs();
-            report.writeln('[-] ${a.ticker} (${a.bank}): -€${a.profitLoss.abs().toStringAsFixed(2)}');
-          }
-        }
-      }
-
-      report.writeln('-----------------------------------------');
-      report.writeln('TOTALE PLUSVALENZE:  +€${plusvalenze.toStringAsFixed(2)}');
-      report.writeln('TOTALE MINUSVALENZE: -€${minusvalenze.toStringAsFixed(2)}');
-      report.writeln('BILANCIO NETTO:       €${(plusvalenze - minusvalenze).toStringAsFixed(2)}');
-      report.writeln('=========================================');
-
-      // Simuliamo l'export copiando nella clipboard e mostrando un dialog
-      Clipboard.setData(ClipboardData(text: report.toString()));
-      
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AureliusTheme.cardDark,
-          title: const Row(
+  // CARD 1 — Net Worth Globale
+  Widget _buildCard1(bool isPrivacy, double netWorth, double grossValue, double liabilities, NumberFormat format, String cur) {
+    return GlassContainer(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(CupertinoIcons.checkmark_seal_fill, color: AureliusTheme.accentGold),
-              SizedBox(width: 8),
-              Text('Report Generato', style: TextStyle(color: AureliusTheme.accentGold)),
+              Text("NET WORTH TOTALE", style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF8E8E93), fontWeight: FontWeight.w600)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(border: Border.all(color: AureliusTheme.accentGold), borderRadius: BorderRadius.circular(8)),
+                child: Text(cur, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AureliusTheme.accentGold)),
+              ),
             ],
           ),
-          content: const Text('Il Report Fiscale è stato calcolato e copiato negli appunti pronto per essere inviato al tuo commercialista.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Chiudi', style: TextStyle(color: Colors.white)),
-            )
-          ],
-        )
-      );
-    });
+          const SizedBox(height: 12),
+          Text(
+            isPrivacy ? "••••••••" : format.format(netWorth),
+            style: GoogleFonts.inter(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 16),
+            height: 1,
+            color: Colors.white.withOpacity(0.1),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("ASSET LORDI", style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF8E8E93), fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text(
+                      isPrivacy ? "••••••" : format.format(grossValue),
+                      style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("PASSIVI", style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF8E8E93), fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text(
+                      isPrivacy ? "••••••" : "-${format.format(liabilities)}",
+                      style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600, color: const Color(0xFFF44336)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
-  void _generateCsvExport(BuildContext context, WidgetRef ref) {
-    final assetsAsync = ref.read(portfolioProvider);
-    
-    assetsAsync.whenData((assets) {
-      StringBuffer csv = StringBuffer();
-      csv.writeln('Categoria,Ticker,Nome,Banca/Locazione,Quantità,Prezzo Ingresso,Prezzo Attuale,Valore Lordo Orig.,Valore Netto Orig.,Valuta');
+  // Logic Wrapper per CARD 2 & 3
+  Widget _buildCard2And3Info(BuildContext context, WidgetRef ref, List<Asset> assets, String targetCurr, bool isPrivacy, NumberFormat format) {
+    if (assets.isEmpty) return const SizedBox.shrink();
 
-      for (var a in assets) {
-        csv.writeln('${a.category.name},${a.ticker},"${a.name}","${a.category == AssetCategory.crypto ? a.cryptoLocation : a.bank}",${a.quantity},${a.entryPrice},${a.currentPrice},${a.totalGrossValue},${a.totalNetValue},${a.currency}');
-      }
+    Map<AssetCategory, double> catValues = {};
+    Map<AssetCategory, double> catEntryValues = {};
+    Map<AssetCategory, double> catGrossValues = {};
+    double totalVal = 0.0;
 
-      Clipboard.setData(ClipboardData(text: csv.toString()));
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dati CSV copiati negli appunti.'), backgroundColor: Colors.green));
-    });
-  }
-}
+    for (var a in assets) {
+      double val = a.totalNetValueIn(targetCurr);
+      double cGross = a.totalGrossValueIn(targetCurr);
+      double cEntry = (a.entryPrice * a.quantity) * a.conversionRate(targetCurr);
 
-class _MetricCol extends StatelessWidget {
-  final String title;
-  final String value;
-  final Color color;
+      catValues[a.category] = (catValues[a.category] ?? 0.0) + val;
+      catEntryValues[a.category] = (catEntryValues[a.category] ?? 0.0) + cEntry;
+      catGrossValues[a.category] = (catGrossValues[a.category] ?? 0.0) + cGross;
+      totalVal += val;
+    }
 
-  const _MetricCol({required this.title, required this.value, required this.color});
+    if (totalVal == 0) return const SizedBox.shrink();
 
-  @override
-  Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(title, style: Theme.of(context).textTheme.bodyMedium),
-        const SizedBox(height: 4),
-        Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
+        _buildCard2(ref, catValues, totalVal, isPrivacy, format),
+        const SizedBox(height: 16),
+        _buildCard3(catValues, catEntryValues, catGrossValues, totalVal, isPrivacy, format),
       ],
     );
   }
-}
 
-class _Legend extends StatelessWidget {
-  final Color color;
-  final String title;
+  // CARD 2 — Grafico ad Anello con Legenda
+  Widget _buildCard2(WidgetRef ref, Map<AssetCategory, double> catValues, double totalVal, bool isPrivacy, NumberFormat format) {
+    final touchedIndex = ref.watch(touchedCategoryIndexProvider);
+    int i = 0;
+    
+    final sortedCats = catValues.keys.toList()..sort((a,b) => catValues[b]!.compareTo(catValues[a]!));
 
-  const _Legend({required this.color, required this.title});
+    List<PieChartSectionData> sections = [];
+    for (var cat in sortedCats) {
+      final isTouched = i == touchedIndex;
+      final val = catValues[cat]!;
+      final pct = (val / totalVal) * 100;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
-        const SizedBox(width: 8),
-        Expanded(child: Text(title, style: const TextStyle(fontSize: 13), softlyWrap: true)),
-      ],
+      sections.add(
+        PieChartSectionData(
+          color: _getCategoryColor(cat),
+          value: val,
+          radius: isTouched ? 90.0 : 80.0,
+          title: isTouched ? "${pct.toStringAsFixed(1)}%" : "",
+          titleStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+        )
+      );
+      i++;
+    }
+
+    return GlassContainer(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("ALLOCAZIONE PATRIMONIO", style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF8E8E93), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 32),
+          SizedBox(
+            height: 200,
+            child: PieChart(
+              PieChartData(
+                sectionsSpace: 2,
+                centerSpaceRadius: 50,
+                sections: sections,
+                pieTouchData: PieTouchData(
+                  touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                    if (!event.isInterestedForInteractions || pieTouchResponse == null || pieTouchResponse.touchedSection == null) {
+                      ref.read(touchedCategoryIndexProvider.notifier).state = -1;
+                      return;
+                    }
+                    ref.read(touchedCategoryIndexProvider.notifier).state = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          ...sortedCats.map((cat) {
+            final val = catValues[cat]!;
+            final pct = (val / totalVal) * 100;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                children: [
+                  Container(width: 12, height: 12, decoration: BoxDecoration(shape: BoxShape.circle, color: _getCategoryColor(cat))),
+                  const SizedBox(width: 8),
+                  Text(_getCategoryName(cat), style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+                  const Spacer(),
+                  Text("${pct.toStringAsFixed(1)}%", style: GoogleFonts.inter(color: const Color(0xFF8E8E93), fontSize: 13)),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: 90,
+                    child: Text(
+                      isPrivacy ? "••••" : format.format(val),
+                      textAlign: TextAlign.right,
+                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // CARD 3 — Performance % Per Categoria con Progress Bar
+  Widget _buildCard3(Map<AssetCategory, double> catValues, Map<AssetCategory, double> catEntryValues, Map<AssetCategory, double> catGrossValues, double totalVal, bool isPrivacy, NumberFormat format) {
+    final sortedCats = catValues.keys.toList()..sort((a,b) => catValues[b]!.compareTo(catValues[a]!));
+
+    return GlassContainer(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("PERFORMANCE PER CATEGORIA", style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF8E8E93), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 20),
+          ...sortedCats.map((cat) {
+            final entry = catEntryValues[cat] ?? 0;
+            final gross = catGrossValues[cat] ?? 0;
+            final val = catValues[cat] ?? 0;
+            final pctWeight = (val / totalVal);
+            
+            double perfPct = entry == 0 ? 0.0 : ((gross - entry) / entry) * 100;
+            bool isPositive = perfPct >= 0;
+            final perfColor = isPositive ? const Color(0xFF4CAF50) : const Color(0xFFF44336);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Row(
+                children: [
+                  Icon(_getCategoryIcon(cat), color: _getCategoryColor(cat), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_getCategoryName(cat), style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                        const SizedBox(height: 6),
+                        Container(
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          alignment: Alignment.centerLeft,
+                          child: FractionallySizedBox(
+                            widthFactor: pctWeight,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _getCategoryColor(cat),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(isPrivacy ? "••••" : format.format(val), style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(
+                        isPrivacy ? "••%" : "${isPositive ? '+' : ''}${perfPct.toStringAsFixed(2)}%",
+                        style: GoogleFonts.inter(color: isPrivacy ? const Color(0xFF8E8E93) : perfColor, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // CARD 4 — Cashflow Immobiliare
+  Widget _buildCard4(List<Asset> assets, String targetCurr, bool isPrivacy, NumberFormat format) {
+    double totalMonthlyRent = 0.0;
+    for (var a in assets) {
+      if (a.monthlyRent > 0) {
+         totalMonthlyRent += a.monthlyRent * a.conversionRate(targetCurr);
+      }
+    }
+
+    return GlassContainer(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("CASHFLOW MENSILE STIMATO", style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF8E8E93), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 20),
+          if (totalMonthlyRent == 0)
+            Center(child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Text("Nessun immobile a reddito nel portafoglio", style: GoogleFonts.inter(color: const Color(0xFF8E8E93), fontSize: 13)),
+            ))
+          else ...[
+            Row(
+              children: [
+                const Icon(Icons.arrow_upward_rounded, color: Color(0xFF4CAF50), size: 18),
+                const SizedBox(width: 8),
+                Text("Entrate da affitti", style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                const Spacer(),
+                Text(isPrivacy ? "••••" : "+${format.format(totalMonthlyRent)}", style: GoogleFonts.inter(color: const Color(0xFF4CAF50), fontSize: 15, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, color: Color(0xFF8E8E93), size: 18),
+                const SizedBox(width: 8),
+                Text("Altre entrate / uscite", style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                const Spacer(),
+                Text("Configura  ➔", style: GoogleFonts.inter(color: AureliusTheme.accentGold, fontSize: 14, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ]
+        ],
+      ),
+    );
+  }
+
+  // CARD 5 — Objective & Savings Goal
+  Widget _buildCard5(BuildContext context, WidgetRef ref, double netWorth, double savingsGoal, NumberFormat format) {
+    double progressPercent = (netWorth / savingsGoal);
+    if (progressPercent < 0) progressPercent = 0.0;
+    if (progressPercent > 1) progressPercent = 1.0;
+
+    final diff = savingsGoal - netWorth;
+
+    return GlassContainer(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("OBIETTIVO PATRIMONIALE", style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF8E8E93), fontWeight: FontWeight.w600)),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.edit_rounded, color: AureliusTheme.accentGold, size: 16),
+                onPressed: () {
+                  final ctrl = TextEditingController(text: savingsGoal.toStringAsFixed(0));
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: const Color(0xFF1C1C1E),
+                      title: Text("Aggiorna Obiettivo", style: GoogleFonts.inter(color: Colors.white)),
+                      content: TextField(
+                        controller: ctrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: GoogleFonts.inter(color: Colors.white),
+                        decoration: const InputDecoration(
+                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AureliusTheme.accentGold)),
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text("Annulla", style: GoogleFonts.inter(color: Colors.grey)),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: AureliusTheme.accentGold, foregroundColor: Colors.black),
+                          onPressed: () {
+                            final val = double.tryParse(ctrl.text);
+                            if (val != null && val > 0) {
+                              ref.read(savingsGoalProvider.notifier).state = val;
+                            }
+                            Navigator.pop(ctx);
+                          },
+                          child: Text("Aggiorna", style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                        )
+                      ],
+                    )
+                  );
+                },
+              )
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(format.format(savingsGoal), style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF8E8E93))),
+              Text("${(progressPercent * 100).toStringAsFixed(1)}% raggiunto", style: GoogleFonts.inter(fontSize: 13, color: AureliusTheme.accentGold, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progressPercent,
+              minHeight: 8,
+              color: AureliusTheme.accentGold,
+              backgroundColor: Colors.white.withOpacity(0.1),
+            ),
+          ),
+          const SizedBox(height: 12),
+          progressPercent >= 1.0
+              ? Text("🎯 Obiettivo raggiunto!", style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF4CAF50), fontWeight: FontWeight.bold))
+              : Text("Ti mancano ${format.format(diff)}", style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF8E8E93))),
+        ],
+      ),
     );
   }
 }

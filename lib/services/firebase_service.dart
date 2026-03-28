@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
 import 'scanner_service.dart';
 import 'price_service.dart';
-
+import '../models/asset_model.dart';
 final firebaseServiceProvider = Provider<FirebaseService>((ref) {
   return FirebaseService();
 });

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'price_service.dart';
-
+import '../models/asset_model.dart';
 final aiAdvisorProvider = Provider<AiAureliusService>((ref) {
   return AiAureliusService(ref);
 });

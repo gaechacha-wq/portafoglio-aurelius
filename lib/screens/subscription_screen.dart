@@ -19,8 +19,17 @@ class SubscriptionScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => context.pop(),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: Color(0xFFD4AF37),
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
         ),
       ),
       body: SingleChildScrollView(

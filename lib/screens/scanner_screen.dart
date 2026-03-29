@@ -10,6 +10,7 @@ import '../services/subscription_service.dart';
 import '../services/scanner_service.dart';
 import '../services/firebase_service.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/aurelius_snackbar.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({super.key});
@@ -57,7 +58,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        AureliusSnackBar.showError(context, e.toString());
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -82,9 +83,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       await fbServe.saveAsset(newAsset);
     }
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Importati con successo!", style: TextStyle(color: Colors.white)), backgroundColor: Colors.green)
-      );
+      AureliusSnackBar.showSuccess(context, "Importati con successo!");
       context.go('/dashboard');
     }
   }
@@ -137,8 +136,17 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => context.pop(),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: Color(0xFFD4AF37),
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
         ),
       ),
       body: SingleChildScrollView(

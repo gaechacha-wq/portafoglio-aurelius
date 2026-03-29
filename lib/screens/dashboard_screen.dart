@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_service.dart';
 import '../core/theme.dart';
 import '../services/price_service.dart';
 import '../services/subscription_service.dart';
@@ -100,7 +102,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final String currentCategory = ref.watch(selectedCategoryFilterProvider); 
     
     final currencyFormat = NumberFormat.currency(locale: 'it_IT', symbol: targetCurrency == 'EUR' ? '€' : (targetCurrency == 'USD' ? '\$' : '£'));
-    final String displayValue = isPrivacyActive ? "••••••" : currencyFormat.format(netWorth);
     final bool isPositive = globalPerformance >= 0;
     final String perfPrefix = isPositive ? "▲ +" : "▼ ";
     final String displayPerf = isPrivacyActive ? "▲ ••.••%" : "${perfPrefix}${globalPerformance.abs().toStringAsFixed(2)}%";
@@ -110,9 +111,130 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       backgroundColor: AureliusTheme.backgroundBlack,
       appBar: AppBar(
         title: Text("Aurelius", style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AureliusTheme.accentGold)),
-        leading: const Padding(
-          padding: EdgeInsets.all(12.0),
-          child: CircleAvatar(backgroundColor: AureliusTheme.accentGold, child: Icon(Icons.person, color: Colors.black, size: 16)),
+        leading: GestureDetector(
+          onTap: () {
+            final subTier = ref.read(subscriptionProvider);
+            final String subName = subTier == SubscriptionTier.base ? "Base" : (subTier == SubscriptionTier.pro ? "Pro" : "Wealth");
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.transparent,
+              isScrollControlled: true,
+              builder: (context) => Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                child: GlassContainer(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF8E8E93).withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Icon(Icons.account_circle_rounded, size: 64, color: AureliusTheme.accentGold),
+                      const SizedBox(height: 12),
+                      Text(
+                        FirebaseAuth.instance.currentUser?.email ?? "Ospite",
+                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subName,
+                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF8E8E93)),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      Divider(color: Colors.white.withOpacity(0.1)),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        leading: const Icon(Icons.person_rounded, color: AureliusTheme.accentGold),
+                        title: Text("Il mio Profilo", style: GoogleFonts.inter(color: Colors.white)),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF8E8E93)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/profile');
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.settings_rounded, color: AureliusTheme.accentGold),
+                        title: Text("Impostazioni", style: GoogleFonts.inter(color: Colors.white)),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF8E8E93)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/settings');
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.workspace_premium_rounded, color: AureliusTheme.accentGold),
+                        title: Text("Il mio Piano", style: GoogleFonts.inter(color: Colors.white)),
+                        subtitle: Text(subName, style: GoogleFonts.inter(color: const Color(0xFF8E8E93))),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF8E8E93)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/subscription');
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.receipt_long_rounded, color: AureliusTheme.accentGold),
+                        title: Text("Zainetto Fiscale", style: GoogleFonts.inter(color: Colors.white)),
+                        subtitle: Text("Report plusvalenze", style: GoogleFonts.inter(color: const Color(0xFF8E8E93))),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF8E8E93)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/tax');
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.insights_rounded, color: AureliusTheme.accentGold),
+                        title: Text("Scenario Planner", style: GoogleFonts.inter(color: Colors.white)),
+                        subtitle: Text("Simulazione Monte Carlo", style: GoogleFonts.inter(color: const Color(0xFF8E8E93))),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF8E8E93)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/scenario');
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.help_outline_rounded, color: AureliusTheme.accentGold),
+                        title: Text("Guida Aurelius", style: GoogleFonts.inter(color: Colors.white)),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF8E8E93)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.go('/help');
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Divider(color: Colors.white.withOpacity(0.1)),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        leading: const Icon(Icons.logout_rounded, color: Color(0xFFF44336)),
+                        title: Text("Esci", style: GoogleFonts.inter(fontSize: 15, color: const Color(0xFFF44336))),
+                        onTap: () async {
+                          await ref.read(authServiceProvider).signOut();
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            context.go('/login');
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+          child: const Padding(
+            padding: EdgeInsets.all(12.0),
+            child: CircleAvatar(backgroundColor: AureliusTheme.accentGold, child: Icon(Icons.person, color: Colors.black, size: 16)),
+          ),
         ),
         actions: [
           IconButton(
@@ -147,7 +269,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     const SizedBox(height: 8),
                     netWorthAsync.when(
-                      data: (_) => Text(displayValue, style: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.bold, color: AureliusTheme.primaryText)),
+                      data: (_) => isPrivacyActive 
+                          ? Text("••••••", style: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.bold, color: AureliusTheme.primaryText))
+                          : TweenAnimationBuilder<double>(
+                              tween: Tween<double>(begin: 0, end: netWorth),
+                              duration: const Duration(milliseconds: 600),
+                              curve: Curves.easeOut,
+                              builder: (context, value, child) {
+                                return Text(
+                                  currencyFormat.format(value),
+                                  style: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.bold, color: AureliusTheme.primaryText),
+                                );
+                              },
+                            ),
                       loading: () => const BaseSkeletonLoader(width: 200, height: 40),
                       error: (_, __) => Text("••••••", style: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.bold, color: AureliusTheme.primaryText)),
                     ),
@@ -253,7 +387,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               );
             },
             loading: () => SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) => const Padding(padding: EdgeInsets.only(left: 16, right: 16, bottom: 16), child: BaseSkeletonLoader(width: double.infinity, height: 80)), childCount: 3),
+              delegate: SliverChildBuilderDelegate((context, index) => Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                child: GlassContainer(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      const BaseSkeletonLoader(width: 44, height: 44, borderRadius: 22),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            BaseSkeletonLoader(width: 120, height: 14),
+                            SizedBox(height: 6),
+                            BaseSkeletonLoader(width: 80, height: 11),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          BaseSkeletonLoader(width: 80, height: 14),
+                          SizedBox(height: 6),
+                          BaseSkeletonLoader(width: 50, height: 11),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ), childCount: 4),
             ),
             error: (e, st) => SliverFillRemaining(child: Center(child: Text("Errore", style: GoogleFonts.inter(color: Colors.red)))),
           ),

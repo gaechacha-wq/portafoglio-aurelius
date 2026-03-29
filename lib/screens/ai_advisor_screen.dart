@@ -7,6 +7,7 @@ import '../services/subscription_service.dart';
 import '../services/ai_aurelius_service.dart';
 import '../services/price_service.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/aurelius_snackbar.dart';
 
 class AiAdvisorScreen extends ConsumerStatefulWidget {
   const AiAdvisorScreen({super.key});
@@ -37,7 +38,7 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
   Future<void> _askQuestion() async {
     final q = _questionController.text.trim();
     if (q.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inserisci una domanda")));
+      AureliusSnackBar.showInfo(context, "Inserisci una domanda");
       return;
     }
     setState(() { _isLoadingQuestion = true; _questionResult = ''; });
@@ -106,8 +107,17 @@ class _AiAdvisorScreenState extends ConsumerState<AiAdvisorScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => context.pop(),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: Color(0xFFD4AF37),
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
         ),
       ),
       body: SingleChildScrollView(

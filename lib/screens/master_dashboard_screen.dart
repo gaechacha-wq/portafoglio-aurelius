@@ -9,6 +9,7 @@ import '../models/asset_model.dart';
 import '../services/price_service.dart';
 import '../services/subscription_service.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/geographical_risk_widget.dart';
 
 final touchedCategoryIndexProvider = StateProvider.autoDispose<int>((ref) => -1);
 
@@ -111,7 +112,19 @@ class MasterDashboardScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text("Patrimonio Globale", style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AureliusTheme.accentGold)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => context.pop()),
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: Color(0xFFD4AF37),
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
+        ),
         actions: [
           IconButton(
             icon: Icon(isPrivacyActive ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: Colors.white),
@@ -138,6 +151,23 @@ class MasterDashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             _buildCard5(context, ref, netWorth, savingsGoal, currencyFormat),
+            const SizedBox(height: 16),
+            const GeographicalRiskWidget(),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AureliusTheme.accentGold,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => context.go('/scenario'),
+                icon: const Text("📊", style: TextStyle(fontSize: 18)),
+                label: Text("Scenario Planner", style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            ),
             const SizedBox(height: 40),
           ],
         ),

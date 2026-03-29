@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../core/theme.dart';
 import '../services/price_service.dart';
 import '../services/subscription_service.dart';
+import '../services/firebase_service.dart';
 import '../widgets/glass_container.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -35,8 +36,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => context.pop(),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: Color(0xFFD4AF37),
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
         ),
       ),
       body: SingleChildScrollView(
@@ -61,7 +71,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       style: GoogleFonts.inter(fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold),
                       items: ['EUR', 'USD', 'GBP'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                       onChanged: (val) {
-                        if (val != null) ref.read(targetCurrencyProvider.notifier).state = val;
+                        if (val != null) {
+                          ref.read(targetCurrencyProvider.notifier).state = val;
+                          ref.read(firebaseServiceProvider).updateUserField('targetCurrency', val);
+                        }
                       },
                     ),
                   ),
@@ -73,7 +86,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     trailing: Switch(
                       value: isPrivacy,
                       activeColor: AureliusTheme.accentGold,
-                      onChanged: (val) => ref.read(privacyModeProvider.notifier).state = val,
+                      onChanged: (val) {
+                        ref.read(privacyModeProvider.notifier).state = val;
+                        ref.read(firebaseServiceProvider).updateUserField('privacyMode', val);
+                      },
+                    ),
+                  ),
+                  _buildDivider(),
+                  _buildRowItem(
+                    icon: Icons.brightness_auto_rounded,
+                    title: "Tema App",
+                    subtitle: ref.watch(themeModeProvider) == ThemeMode.system ? "Automatico" : (ref.watch(themeModeProvider) == ThemeMode.dark ? "Scuro (Notte)" : "Chiaro (Giorno)"),
+                    trailing: DropdownButton<ThemeMode>(
+                      value: ref.watch(themeModeProvider),
+                      dropdownColor: Theme.of(context).colorScheme.surface,
+                      underline: const SizedBox(),
+                      icon: const Icon(Icons.arrow_drop_down, color: AureliusTheme.accentGold),
+                      style: GoogleFonts.inter(fontSize: 14, color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold),
+                      items: const [
+                        DropdownMenuItem(value: ThemeMode.system, child: Text("Automatico")),
+                        DropdownMenuItem(value: ThemeMode.dark, child: Text("Scuro (Notte)")),
+                        DropdownMenuItem(value: ThemeMode.light, child: Text("Chiaro (Giorno)")),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          ref.read(themeModeProvider.notifier).state = val;
+                        }
+                      },
                     ),
                   ),
                   _buildDivider(),
@@ -105,7 +144,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 style: ElevatedButton.styleFrom(backgroundColor: AureliusTheme.accentGold, foregroundColor: Colors.black),
                                 onPressed: () {
                                   final val = double.tryParse(ctrl.text);
-                                  if (val != null && val > 0) ref.read(savingsGoalProvider.notifier).state = val;
+                                  if (val != null && val > 0) {
+                                    ref.read(savingsGoalProvider.notifier).state = val;
+                                    ref.read(firebaseServiceProvider).updateUserField('savingsGoal', val);
+                                  }
                                   Navigator.pop(ctx);
                                 },
                                 child: const Text("Salva", style: TextStyle(fontWeight: FontWeight.bold)),

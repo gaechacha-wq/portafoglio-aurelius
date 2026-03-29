@@ -65,7 +65,8 @@ class ScannerService {
           TextPart(prompt)
         ])
       ];
-      final response = await _model!.generateContent(content);
+      final m = _model;
+      final response = await m.generateContent(content);
       String text = response.text ?? "[]";
       
       text = text.replaceAll('```json', '').replaceAll('```', '').trim();

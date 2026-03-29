@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import '../models/asset_model.dart';
 
 // Stato globale per la Privacy Mode e Target Currency
 final privacyModeProvider = StateProvider<bool>((ref) => false);
 final targetCurrencyProvider = StateProvider<String>((ref) => 'EUR'); // 'EUR', 'USD', 'GBP'
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 
 // Obiettivo Finanziario (Savings Goal)
 final savingsGoalProvider = StateProvider<double>((ref) => 1000000.0); // 1 Milione di default
@@ -31,12 +34,25 @@ final selectedCategoryFilterProvider = StateProvider<String>((ref) => 'Tutte');
 // Stream da Firebase
 final portfolioProvider = StreamProvider<List<Asset>>((ref) {
   try {
-    return FirebaseFirestore.instance.collection('portfolio').snapshots().asyncMap((snapshot) {
-      if (snapshot.docs.isEmpty) {
-        return _simulatePricesOffline(); // Fallback per Demo
-      }
-      return snapshot.docs.map((doc) => Asset.fromFirestore(doc)).toList();
-    });
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return _createHybridSimulationStream();
+    }
+
+    return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('portfolio')
+      .snapshots()
+      .asyncMap((snapshot) {
+        if (snapshot.docs.isEmpty) {
+          return _cachedMockAssets;
+        }
+        return snapshot.docs
+          .map((doc) => Asset.fromFirestore(doc))
+          .toList();
+      });
   } catch (e) {
     return _createHybridSimulationStream();
   }
@@ -188,6 +204,3 @@ List<Asset> _cachedMockAssets = [
   Asset(id: '10', ticker: 'PIP-ALL', name: 'Fondo Pensione Allianz', entryPrice: 24000.0, currentPrice: 27500.0, quantity: 1, bank: 'Allianz', category: AssetCategory.previdenza, expirationDate: DateTime(2045, 6, 1), currency: 'EUR'),
 ];
 
-List<Asset> _simulatePricesOffline() {
-  return _cachedMockAssets; // Ora gestito dal gen custom stream _createHybridSimulationStream
-}

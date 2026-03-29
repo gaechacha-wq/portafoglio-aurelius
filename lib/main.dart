@@ -5,13 +5,16 @@ import 'core/router/app_router.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'services/price_service.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // TODO: Inizializzare Firebase qui
-  // await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   runApp(
     const ProviderScope(
@@ -31,7 +34,9 @@ class PortfolioAureliusApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Portfolio Aurelius',
       debugShowCheckedModeBanner: false,
-      theme: AureliusTheme.darkTheme,
+      theme: AureliusTheme.lightTheme,
+      darkTheme: AureliusTheme.darkTheme,
+      themeMode: ref.watch(themeModeProvider),
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

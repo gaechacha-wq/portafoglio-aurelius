@@ -12,22 +12,26 @@
 
 ---
 
-## 1. COSA È PORTAFOGLIO AURELIUS
-
-App Flutter premium per il monitoraggio
-del patrimonio personale (HNWI).
-Aggrega: Finanza Tradizionale, Crypto,
-Immobiliare, Lusso, Metalli, Previdenza.
-
-Target: individui ad alto patrimonio netti
-italiani (HNWI), con distribuzione B2B2C
-tramite commercialisti e wealth manager.
-
-Design system: Glassmorphism Dark Mode,
-Oro #D4AF37, Font Inter, sfondo #000000.
-
-Principio guida: POTENTE sotto il cofano,
-SEMPLICE in superficie, BELLO sempre.
+## COSA FUNZIONA OGGI
+- Login / Registrazione Firebase Auth ✅
+- Dashboard Net Worth real-time ✅
+- Portfolio connesso a Firestore ✅
+- Master Dashboard con PieChart (Wealth) ✅
+- Aggiungi asset wizard 5 step ✅
+- AI Advisor con Gemini 1.5 Flash (Pro+) ✅
+- Scanner OCR con Gemini Vision (Pro+) ✅
+- Tax Engine 26% + export CSV (Pro+) ✅
+- Privacy Mode ✅
+- Settings completo ✅
+- Profilo utente con logout ✅
+- Onboarding nuovi utenti ✅
+- Guida utente integrata ✅
+- Regole sicurezza Firestore ✅
+- Animazione Net Worth counter ✅
+- Dettaglio asset bottom sheet ✅
+- Scenario Planner Monte Carlo (Pro+) ✅
+- Geographical Risk Mapping ✅
+- Distribuzione probabilità Chart ✅
 
 ---
 
@@ -56,20 +60,18 @@ POTENTE — SEMPLICE — BELLA — FUNZIONALE
 
 ---
 
-## 3. STACK TECNICO CONFERMATO
-
+## STACK TECNICO
 - Flutter 3.19.6 + Dart 3.3.4
-- State management: flutter_riverpod 2.6.1
-  (PURO — nessun mix con altri manager)
-- Routing: go_router 13.2.5
-- Database: Firebase Firestore (offline-first)
-- Code gen: freezed 2.5.2 + json_serializable
-- UI: shimmer, fl_chart 0.66.2, flutter_svg
-- Font: Google Fonts Inter
-- AI: google_generative_ai 0.4.7 (Gemini)
-- Image: image_picker 1.1.2
-- Env: flutter_dotenv 5.2.1
-- Infra: Firebase Hosting (deploy web)
+- Riverpod 2.6.1 (PURO)
+- go_router 13.2.5
+- Firebase Firestore (eur3)
+- Firebase Auth (Email/Password)
+- Firebase Hosting
+- Gemini 1.5 Flash (AI + Vision)
+- google_generative_ai 0.4.7
+- flutter_dotenv 5.2.1
+- fl_chart 0.66.2
+- Monte Carlo (Geometric Brownian Motion)
 
 ---
 
@@ -78,18 +80,22 @@ POTENTE — SEMPLICE — BELLA — FUNZIONALE
 ```
 lib/
 ├── main.dart                    ✅ COMPLETO
+├── firebase_options.dart        ✅ COMPLETO
 ├── core/
 │   ├── theme.dart               ✅ COMPLETO
 │   └── router/app_router.dart  ✅ COMPLETO (8 route)
 ├── models/
 │   ├── asset_model.dart         ✅ COMPLETO (Freezed)
+│   ├── tax_model.dart           ✅ COMPLETO
 │   └── user_profile.dart        ✅ COMPLETO
 ├── services/
 │   ├── firebase_service.dart    ✅ COMPLETO
 │   ├── price_service.dart       ✅ COMPLETO
 │   ├── subscription_service.dart ✅ COMPLETO
 │   ├── ai_aurelius_service.dart ✅ GEMINI REALE
-│   └── scanner_service.dart     ✅ VISION REALE
+│   ├── scanner_service.dart     ✅ REALE (Vision)
+│   ├── tax_export_service.dart  ✅ COMPLETO
+│   └── auth_service.dart        ✅ COMPLETO
 ├── widgets/
 │   ├── glass_container.dart     ✅ COMPLETO
 │   ├── neon_glass_container.dart ✅ COMPLETO
@@ -103,7 +109,10 @@ lib/
     ├── subscription_screen.dart ✅ COMPLETO
     ├── settings_screen.dart     ✅ REALE
     ├── ai_advisor_screen.dart   ✅ REALE (Gemini)
-    └── scanner_screen.dart      ✅ REALE (Vision)
+    ├── scanner_screen.dart      ✅ REALE (Vision)
+    ├── tax_screen.dart          ✅ COMPLETO
+    ├── help_screen.dart         ✅ COMPLETO
+    └── login_screen.dart        ✅ COMPLETO
 ```
 
 ---
@@ -195,26 +204,14 @@ export PATH="$HOME/development/flutter/bin:$PATH"
 
 ---
 
-## 10. COSA NON È ANCORA FATTO
-
-### Bloccante per utenti reali:
-- Firebase Auth (login/registrazione)
-- Firestore attivato con regole sicurezza
-- google-services.json (Android)
-- GoogleService-Info.plist (iOS)
-
-### Feature future pianificate:
-- Tax Engine italiano (imposta sostitutiva 26%)
-- Connettività bancaria Salt Edge (API)
-- Monte Carlo stress test
-- Geographical Risk Mapping
-- Estate planning / passaggio generazionale
-- Family office (5 utenti collaboratori)
-- Refactoring colori hard-coded → token theme
-
-### Platform future:
-- iOS (richiede Xcode + Apple Developer €99/anno)
-- Android (richiede Android Studio + Google Play €25)
+## COSA MANCA (priorità ordine)
+1. Connettività bancaria Salt Edge
+2. Family office multi-utente
+3. Notifiche push
+4. iOS build (App Store)
+5. Android build (Google Play)
+6. Dominio custom
+7. Pagamenti reali (RevenueCat)
 
 ---
 

@@ -7,6 +7,7 @@ import '../core/theme.dart';
 import '../models/asset_model.dart';
 import '../services/firebase_service.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/aurelius_snackbar.dart';
 
 class AddAssetScreen extends ConsumerStatefulWidget {
   const AddAssetScreen({super.key});
@@ -80,7 +81,11 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
     if (_currentStep > 0) {
       setState(() => _currentStep--);
     } else {
-      context.pop();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/dashboard');
+      }
     }
   }
 
@@ -118,19 +123,14 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
     try {
       await ref.read(firebaseServiceProvider).saveAsset(newAsset);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Asset aggiunto con successo! 🎉", style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black)),
-            backgroundColor: const Color(0xFF4CAF50),
-          ),
-        );
-        context.go('/dashboard');
+        final assetName = newAsset.name.isEmpty ? newAsset.ticker : newAsset.name;
+        AureliusSnackBar.showSuccess(context, "✅ $assetName aggiunto al portafoglio!");
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) context.go('/dashboard');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Errore salvataggio: $e")),
-        );
+        AureliusSnackBar.showError(context, "Errore nel salvataggio. Riprova tra qualche secondo.");
       }
     } finally {
       if (mounted) {
@@ -147,7 +147,10 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: Color(0xFFD4AF37),
+          ),
           onPressed: _prevStep,
         ),
         title: Text(

@@ -14,5 +14,15 @@
 6. **Hard Reset / Web Build Nativa**: Dopo svariati tentativi di downgrade forzato per retro-compatibilità col cloud gratuito, si è deciso un **Hard Reset** ai file moderni e incontaminati. La scelta strategica virò definitivamente verso la *Compilazione Locale Dedicata* (su Mac via Terminale) allo scopo di estrarre un pacchetto binario Web purificato e pronto per l'hosting professionale tramite Server Dedicati (come un Plesk IONOS). In questo modo si supera ogni limite pre-impostato via webIDE.
 7. **Setup Architettura Premium (Marzo 2026)**: Inserimento delle dipendenze avanzate necessarie per un'app di alto livello. È stato configurato `go_router` associato a Riverpod per la navigazione dichiarativa e sicura. Integrazione di `@freezed` e `json_serializable` per modelli dati immutabili e type-safe (es. `UserProfile`). Aggiunti pacchetti per la UI Premium come `shimmer` (per skeleton loaders eleganti) e `flutter_svg`. Creazione dei primi file architetturali in `lib/core/router/app_router.dart`, `lib/models/user_profile.dart` e `lib/widgets/skeleton_loader.dart`.
 8. **Fase Attuale (Inizio Sviluppo Moduli)**: Architettura consolidata. Il focus attuale è lo sviluppo dei Widget UI (`screens/` e `widgets/`), la connessione reale a Firebase Core e l'integrazione del motore LLM (Vision) per lo Scanner Fiscale. L'obiettivo primario è rendere operativo il calcolo in tempo reale del Net Worth.
+9. **Analisi Strategica (Marzo 2026)**:
+   Analisi competitiva vs Kubera, Finary, Copilot. Definizione pricing B2C e strategia go-to-market B2B2C tramite commercialisti e wealth manager. Pricing confermato: €9,99 / €24,99 / €79,99.
+10. **Deploy Web (28 Marzo 2026)**:
+    Prima versione pubblica online su Firebase Hosting. Flutter 3.19.6 installato su Mac M5 Pro. URL: portafoglio-aurelius.web.app
+11. **Integrazione Firebase Reale (28 Marzo 2026)**:
+    Firestore attivato in region eur3. Firebase Auth con Email/Password. Regole sicurezza multi-tenant attive. Login screen e onboarding implementati.
+12. **Tax Engine Italiano (29 Marzo 2026)**:
+    Implementato calcolo imposta sostitutiva 26% su plusvalenze. Export CSV per commercialista. Schermata Zainetto Fiscale con gate Pro/Wealth.
+13. **UX Premium MP-13 (29 Marzo 2026)**:
+    Animazione counter Net Worth. Skeleton loader realistici. Bottom sheet dettaglio asset. Schermata profilo utente completa.
 
 *Da questo punto in poi l'integrità del codice originario è ripristinata e documentata. Chiunque, o qualsiasi AI lo prenda in carico, possiede le coordinate corrette per il decollo tecnico dell'applicativo.*

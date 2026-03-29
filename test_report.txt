@@ -1,0 +1,24 @@
+=== TEST URL ONLINE ===
+200
+=== TEST LOCALHOST ===
+200
+=== DIMENSIONE BUILD ===
+ 23M	build/web/
+-rw-r--r--  1 gaetano1  staff   3.2M Mar 29 00:21 build/web/main.dart.js
+=== FLUTTER ANALYZE ===
+Analyzing Portafoglio-Aurelius...                               
+
+warning • The operand can't be null, so the condition is always 'false' • lib/services/ai_aurelius_service.dart:45:13 • unnecessary_null_comparison
+warning • The operand can't be null, so the condition is always 'false' • lib/services/ai_aurelius_service.dart:64:13 • unnecessary_null_comparison
+warning • The operand can't be null, so the condition is always 'false' • lib/services/scanner_service.dart:69:13 • unnecessary_null_comparison
+warning • The value of the local variable 'formatter' isn't used • lib/services/tax_export_service.dart:42:11 • unused_local_variable
+
+=== VERIFICA FILE ===
+✅ lib/services/tax_export_service.dart
+✅ lib/screens/tax_screen.dart
+✅ lib/screens/help_screen.dart
+✅ lib/screens/onboarding_screen.dart
+✅ lib/screens/login_screen.dart
+✅ lib/services/auth_service.dart
+✅ lib/firebase_options.dart
+✅ firestore.rules

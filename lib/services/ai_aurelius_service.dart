@@ -41,7 +41,8 @@ class AiAureliusService {
                    
     try {
       final content = [Content.text(prompt)];
-      final response = await _model!.generateContent(content);
+      final m = _model;
+      final response = await m.generateContent(content);
       return response.text ?? "Nessuna analisi generata.";
     } catch (e) {
       return "Servizio AI non disponibile. Controlla la configurazione.";
@@ -58,7 +59,8 @@ class AiAureliusService {
                    
     try {
       final content = [Content.text(prompt)];
-      final response = await _model!.generateContent(content);
+      final m = _model;
+      final response = await m.generateContent(content);
       return response.text ?? "Nessuna risposta generata.";
     } catch (e) {
       return "Servizio AI non disponibile. Controlla la configurazione.";

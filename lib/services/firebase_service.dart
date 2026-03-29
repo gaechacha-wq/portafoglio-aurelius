@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'scanner_service.dart';
-import 'price_service.dart';
 import '../models/asset_model.dart';
 final firebaseServiceProvider = Provider<FirebaseService>((ref) {
   return FirebaseService();
@@ -14,8 +13,7 @@ class FirebaseService {
   // Usa l'ID utente reale una volta implementata l'autenticazione. 
   // Attualmente simula un utente SaaS isolato.
   String get _currentUserId {
-    // return FirebaseAuth.instance.currentUser?.uid ?? 'anonymous_saas_user';
-    return 'premium_user_001';
+    return FirebaseAuth.instance.currentUser?.uid ?? 'anonymous_user';
   }
 
   /// Configura la persistenza offline in modo che l'utente veda l'ultimo portfolio anche
@@ -108,6 +106,63 @@ class FirebaseService {
       await saveAsset(newAsset);
     } catch (e) {
       // Ignora l'errore per continuità UX offline
+    }
+  }
+
+  // Salva profilo utente su Firestore
+  Future<void> saveUserProfile({
+    required String displayName,
+    required String subscriptionTier,
+    required double savingsGoal,
+    required String targetCurrency,
+    required bool privacyMode,
+  }) async {
+    try {
+      await _db
+        .collection('users')
+        .doc(_currentUserId)
+        .set({
+          'displayName': displayName,
+          'subscriptionTier': subscriptionTier,
+          'savingsGoal': savingsGoal,
+          'targetCurrency': targetCurrency,
+          'privacyMode': privacyMode,
+          'lastUpdated': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+    } catch (e) {
+      // Fallback silente
+    }
+  }
+
+  // Leggi profilo utente da Firestore
+  Future<Map<String, dynamic>?> getUserProfile() async {
+    try {
+      final doc = await _db
+        .collection('users')
+        .doc(_currentUserId)
+        .get();
+      return doc.data();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Aggiorna singolo campo profilo
+  Future<void> updateUserField(
+    String field,
+    dynamic value,
+  ) async {
+    try {
+      await _db
+        .collection('users')
+        .doc(_currentUserId)
+        .update({
+          field: value,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+    } catch (e) {
+      // Fallback silente
     }
   }
 }

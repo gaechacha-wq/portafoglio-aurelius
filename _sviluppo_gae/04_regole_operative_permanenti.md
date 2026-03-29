@@ -38,3 +38,14 @@ L'app deve rimanere sempre:
 - **FUNZIONALE** e intuitiva anche per utenti non esperti di finanza
 
 Qualsiasi feature complessa deve essere presentata all'utente finale in forma semplice. La complessità è sotto il cofano, mai in superficie.
+
+## CODICI SESSIONE
+Formato codici usati:
+- `NN-AURELIUS` → numero blocco sessione
+- `AURELIUS-MP-XX` → ciclo master prompt
+- `AURELIUS-MP-XX-FN` → fase specifica
+
+## REGOLA 4 — AGGIORNAMENTO DOCS
+Al termine di ogni ciclo MP:
+Antigravity aggiorna i file 00, 01, 02, 03 con le nuove informazioni. 
+Il file `18_recap_sessione_deploy.md` è il documento master sempre aggiornato.

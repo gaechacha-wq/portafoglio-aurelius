@@ -7,21 +7,43 @@
 
 ### 1. `Asset` (Modello Universale)
 Il cuore dell'applicazione. Un `Asset` rappresenta tramite un approccio polimorfico sia posizioni finanziarie, asset illiquidi, sia liquidità.
-- `id` (String): Identificativo univoco
+- `id` (String?): Identificativo univoco univoco
 - `ticker` (String): Simbolo (es. NVDA) o nome leggibile
 - `name` (String): Nome completo dell'asset
-- `category` (AssetCategory): Enum `[finance, crypto, realEstate, metal, luxury, pension, cash]`
+- `category` (AssetCategory): Enum `[finance, crypto, realEstate, luxury, cash, metal, previdenza]`
 - `quantity` (double): Quantità in portafoglio
 - `entryPrice` (double): Prezzo di carico originario
 - `currentPrice` (double): Prezzo attuale di mercato
-- `currency` (String): Valuta base dell'asset (EUR, USD, GBP)
-- `bank` (String): Custode/Broker/Piattaforma associata (Fineco, Intesa, Revolut)
-- `cryptoLocation` (String): Wallet o Exchange (per criptovalute)
+- `currency` (String): Valuta base dell'asset (default 'EUR')
+- `bank` (String): Custode/Broker/Piattaforma associata
+- `cryptoLocation` (String?): Wallet o Exchange (per criptovalute)
+- `remainingMortgage` (double?): Mutuo residuo (per Real Estate)
+- `monthlyRent` (double?): Affitto mensile (per Real Estate)
+- `expirationDate` (DateTime?): Scadenza vincolo (per Previdenza/Cash)
+- `description` (String?): Note libere associate
 
 ### 2. `SubscriptionTier` (Modello Abbonamenti)
 Sistema di ruoli SaaS per gating (blocchi logici).
-- Enum: `[free, base, pro, wealth_elite]`
-- Regola: Il piano `wealth_elite` sblocca la `Master Dashboard`, l'Agente IA integrato e i report avanzati. Il piano `pro` sblocca lo `Scanner` screenshot e gestione multi-banca. Il piano `base/free` limita a 1 banca.
+- Enum: `[free, base, pro, wealth]`
+- Regola: Il piano `wealth` sblocca la `Master Dashboard`, Family office e reportistica Tax. Il piano `pro` sblocca lo `Scanner` screenshot e l'`Ai Advisor`. Il piano `base/free` limita gli asset o integra manual tracking.
+
+## STATO FIRESTORE ATTUALE
+- Progetto: portafoglio-aurelius
+- Region: eur3 (Europe-west)
+- Modalità: Production
+- Regole sicurezza: ATTIVE (`auth.uid == userId`)
+
+## COLLECTIONS ATTIVE
+```
+users/{userId}/
+  ├── portfolio/{assetId}
+  └── historical_sales/{saleId}
+```
+
+## AUTH
+- Provider: Email/Password
+- Stato: ATTIVO
+- UID dinamico: sì
 
 ## Albero di Connessioni (Firestore - Lato Database)
 
